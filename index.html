@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CLO & PLO Dashboard — Diploma Pemasaran PSAS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;background:#f0f2f5;color:#1f2328;font-size:14px;line-height:1.6}
+  /* Sidebar */
+  #sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;background:#1e293b;color:#e2e8f0;display:flex;flex-direction:column;padding:0;z-index:100;overflow-y:auto}
+  #sidebar .brand{padding:20px 16px 14px;border-bottom:1px solid #334155}
+  #sidebar .brand h2{font-size:15px;font-weight:700;color:#f8fafc;line-height:1.3}
+  #sidebar .brand p{font-size:11px;color:#94a3b8;margin-top:3px}
+  #sidebar nav{flex:1;padding:12px 0}
+  #sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 18px;color:#cbd5e1;text-decoration:none;font-size:13px;border-left:3px solid transparent;transition:all .15s}
+  #sidebar nav a:hover{background:#334155;color:#f8fafc}
+  #sidebar nav a.active{background:#1e40af22;color:#60a5fa;border-left-color:#3b82f6;font-weight:600}
+  #sidebar .target-badge{margin:0 14px 16px;background:#0f172a;border-radius:8px;padding:10px 12px;font-size:11px;color:#94a3b8}
+  #sidebar .target-badge strong{color:#f59e0b;font-size:13px}
+  /* Main */
+  #main{margin-left:220px;padding:24px;min-height:100vh}
+  .page{display:none}
+  .page.active{display:block}
+  /* Header */
+  .page-header{margin-bottom:20px}
+  .page-header h1{font-size:22px;font-weight:700;color:#1e293b}
+  .page-header p{color:#57606a;font-size:13px;margin-top:3px}
+  hr.divider{border:none;border-top:1px solid #e5e7eb;margin:16px 0}
+  /* Cards */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+  .kpi-card{background:#fff;border-radius:10px;padding:16px 18px;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .kpi-card .label{font-size:11px;color:#57606a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .kpi-card .value{font-size:26px;font-weight:700;color:#1e293b;line-height:1}
+  .kpi-card .sub{font-size:11px;margin-top:5px}
+  .kpi-card .sub.ok{color:#22c55e} .kpi-card .sub.warn{color:#ef4444}
+  /* Sections */
+  .section{background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .section h3{font-size:15px;font-weight:600;color:#1e293b;margin-bottom:4px}
+  .section .caption{font-size:11px;color:#57606a;margin-bottom:14px}
+  /* Grid 2 col */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid2 .section{margin-bottom:0}
+  /* Table */
+  .tbl-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:#f7f8fa;padding:9px 12px;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap}
+  td{padding:8px 12px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+  tr:hover td{background:#f9fafb}
+  /* Progress bar */
+  .bar-wrap{background:#e5e7eb;border-radius:99px;height:7px;width:100%;min-width:80px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:99px;transition:width .4s}
+  /* Badges */
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600}
+  .badge.achieved{background:#dcfce7;color:#15803d}
+  .badge.near{background:#fef9c3;color:#92400e}
+  .badge.failed{background:#fee2e2;color:#b91c1c}
+  /* Filters */
+  .filter-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end}
+  .filter-group{display:flex;flex-direction:column;gap:4px}
+  .filter-group label{font-size:11px;font-weight:600;color:#57606a;text-transform:uppercase}
+  select,input{padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:#fff;color:#1f2328;outline:none}
+  select:focus,input:focus{border-color:#3b82f6;box-shadow:0 0 0 2px #3b82f620}
+  /* Tabs */
+  .tabs{display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:18px}
+  .tab-btn{padding:9px 18px;font-size:13px;font-weight:500;color:#57606a;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+  .tab-btn.active{color:#3b82f6;border-bottom-color:#3b82f6;font-weight:600}
+  .tab-btn:hover{color:#1f2328}
+  .tab-panel{display:none} .tab-panel.active{display:block}
+  /* Heatmap */
+  .heatmap-wrap{overflow:auto;max-height:500px}
+  .heatmap-tbl th,.heatmap-tbl td{padding:5px 8px;text-align:center;font-size:11px;white-space:nowrap;border:1px solid #e5e7eb}
+  .heatmap-tbl th{position:sticky;top:0;background:#f7f8fa;z-index:2;font-size:11px}
+  .heatmap-tbl td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1;min-width:160px;font-weight:500}
+  /* Upload area */
+  .upload-area{border:2px dashed #d1d5db;border-radius:10px;padding:28px;text-align:center;color:#57606a;cursor:pointer;transition:border-color .2s;background:#fafafa}
+  .upload-area:hover{border-color:#3b82f6;color:#1f2328}
+  /* Legend dots */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#57606a;margin-bottom:10px}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .dot.g{background:#22c55e} .dot.y{background:#f59e0b} .dot.r{background:#ef4444} .dot.b{background:#3b82d4}
+  /* Chart canvas containers */
+  .chart-box{position:relative;width:100%}
+  /* Responsive */
+  @media(max-width:800px){#sidebar{width:100%;height:auto;position:relative}.grid2{grid-template-columns:1fr}#main{margin-left:0}}
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<div id="sidebar">
+  <div class="brand">
+    <h2>🎓 CLO &amp; PLO Dashboard</h2>
+    <p>Diploma Pemasaran<br>Politeknik Sultan Azlan Shah</p>
+  </div>
+  <nav>
+    <a href="#" class="active" onclick="showPage('overview',this)">🏠 Overview</a>
+    <a href="#" onclick="showPage('plo',this)">📊 PLO Dashboard</a>
+    <a href="#" onclick="showPage('course',this)">📚 Course CLO</a>
+    <a href="#" onclick="showPage('mapping',this)">🗺️ CLO-PLO Mapping</a>
+    <a href="#" onclick="showPage('trend',this)">📈 Trend Analysis</a>
+  </nav>
+  <div class="target-badge">
+    Target Minimum<br><strong>55%</strong> attainment
+    <div style="margin-top:8px;font-size:10px">
+      <span style="color:#22c55e">●</span> ≥55% Achieved<br>
+      <span style="color:#f59e0b">●</span> 45–54% Near Target<br>
+      <span style="color:#ef4444">●</span> &lt;45% Not Achieved
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div id="main">
+
+<!-- ════════════════════════ PAGE: OVERVIEW ════════════════════════ -->
+<div id="page-overview" class="page active">
+  <div class="page-header">
+    <h1>🎓 CLO &amp; PLO Reporting Dashboard</h1>
+    <p>Diploma Pemasaran — Politeknik Sultan Azlan Shah (PSAS)</p>
+  </div>
+  <hr class="divider">
+
+  <!-- Upload -->
+  <div class="section" style="padding:14px 18px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:2px">📂 Data Source</div>
+        <div style="font-size:11px;color:#57606a">Currently using <strong>Sample Data</strong>. Upload your Excel-exported CSV to use real data.</div>
+      </div>
+      <label style="margin-left:auto">
+        <input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFileUpload(event)">
+        <span style="padding:7px 14px;background:#3b82f6;color:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">⬆ Upload JSON Data</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpi-overview"></div>
+
+  <!-- Summary table -->
+  <div class="section">
+    <h3>📋 PLO Attainment Summary</h3>
+    <p class="caption">🟢 ≥55% Achieved &nbsp;|&nbsp; 🟡 45–54% Near Target &nbsp;|&nbsp; 🔴 &lt;45% Not Achieved</p>
+    <div class="tbl-wrap"><table id="plo-summary-table">
+      <thead><tr><th>PLO</th><th>Description</th><th>Domain</th><th style="min-width:140px">Attainment</th><th>vs Target</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
+  <!-- Bar chart -->
+  <div class="section">
+    <h3>📊 PLO Attainment vs Target (All PLOs)</h3>
+    <div class="chart-box" style="height:340px"><canvas id="chart-overview-bar"></canvas></div>
+  </div>
+</div>
+
+<!-- ════════════════════════ PAGE: PLO DASHBOARD ════════════════════════ -->
+<div id="page-plo" class="page">
+  <div class="page-header">
+    <h1>📊 PLO Dashboard</h1>
+    <p>Detailed Program Learning Outcome attainment analysis — Diploma Pemasaran, PSAS</p>
+  </div>
+  <hr class="divider">
+
+  <div class="filter-row">
+    <div class="filter-group"><label>Year</label>
+      <select id="plo-year" onchange="renderPLOPage()"><option value="all">All Years</option></select></div>
+    <div class="filter-group"><label>Semester</label>
+      <select id="plo-sem" onchange="renderPLOPage()"><option value="all">All Semesters</option></select></div>
+  </div>
+
+  <div class="grid2" style="margin-bottom:16px">
+    <div class="section">
+      <h3>🕸️ PLO Attainment Radar</h3>
+      <div class="chart-box" style="height:320px"><canvas id="chart-radar"></canvas></div>
+    </div>
+    <div class="section">
+      <h3>📊 PLO vs Target</h3>
+      <div class="chart-box" style="height:320px"><canvas id="chart-plo-bar"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>🏷️ Attainment by Domain</h3>
+    <div class="chart-box" style="height:300px"><canvas id="chart-domain"></canvas></div>
+  </div>
+
+  <div class="section">
+    <h3>📋 PLO Detail Table</h3>
+    <div class="tbl-wrap"><table id="plo-detail-table">
+      <thead><tr><th>PLO</th><th>Description</th><th>Domain</th><th style="min-width:140px">Attainment</th><th>Gap</th><th># CLOs</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <div style="margin-top:12px">
+      <button onclick="exportCSV('plo-detail-table','plo_report.csv')" style="padding:7px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">⬇ Download PLO Report (CSV)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ PAGE: COURSE CLO ════════════════════════ -->
+<div id="page-course" class="page">
+  <div class="page-header">
+    <h1>📚 Course &amp; CLO Attainment</h1>
+    <p>View CLO attainment for each course — Diploma Pemasaran, PSAS</p>
+  </div>
+  <hr class="divider">
+
+  <div class="filter-row">
+    <div class="filter-group"><label>Course</label>
+      <select id="course-sel" onchange="renderCoursePage()" style="min-width:240px"></select></div>
+    <div class="filter-group"><label>Year</label>
+      <select id="course-year" onchange="renderCoursePage()"><option value="all">All Years</option></select></div>
+  </div>
+
+  <div class="kpi-grid" id="kpi-course"></div>
+
+  <div class="section">
+    <h3 id="course-chart-title">CLO Attainment</h3>
+    <div class="chart-box" style="height:320px"><canvas id="chart-clo-bar"></canvas></div>
+  </div>
+
+  <div class="section" id="course-trend-section">
+    <h3>📈 CLO Attainment Trend (by Year)</h3>
+    <div class="chart-box" style="height:300px"><canvas id="chart-clo-trend"></canvas></div>
+  </div>
+
+  <div class="section">
+    <h3>📋 CLO Detail Table</h3>
+    <div class="tbl-wrap"><table id="clo-detail-table">
+      <thead><tr><th>Course</th><th>CLO</th><th style="min-width:140px">Attainment</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <div style="margin-top:12px">
+      <button onclick="exportCSV('clo-detail-table','clo_report.csv')" style="padding:7px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">⬇ Download CLO Report (CSV)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ PAGE: MAPPING ════════════════════════ -->
+<div id="page-mapping" class="page">
+  <div class="page-header">
+    <h1>🗺️ CLO-PLO Mapping</h1>
+    <p>Heatmap showing which CLOs contribute to each PLO — Diploma Pemasaran, PSAS</p>
+  </div>
+  <hr class="divider">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('map','heatmap',this)">🔥 Attainment Heatmap</button>
+    <button class="tab-btn" onclick="switchTab('map','matrix',this)">✅ Mapping Matrix</button>
+    <button class="tab-btn" onclick="switchTab('map','coverage',this)">📊 PLO Coverage</button>
+  </div>
+
+  <div id="map-heatmap" class="tab-panel active">
+    <div class="section">
+      <h3>CLO Attainment Heatmap (mapped cells only)</h3>
+      <p class="caption">Each cell shows CLO attainment %. Coloured = mapped; grey = not mapped.</p>
+      <div class="legend"><span><span class="dot g"></span>≥55%</span><span><span class="dot y"></span>45–54%</span><span><span class="dot r"></span>&lt;45%</span></div>
+      <div class="heatmap-wrap"><table id="heatmap-table" class="heatmap-tbl"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div id="map-matrix" class="tab-panel">
+    <div class="section">
+      <h3>CLO-PLO Mapping Matrix</h3>
+      <p class="caption">✅ = CLO is mapped to PLO</p>
+      <div class="filter-row"><div class="filter-group"><label>Filter Course</label>
+        <select id="matrix-course-sel" onchange="renderMatrix()" style="min-width:220px"></select></div></div>
+      <div class="heatmap-wrap"><table id="matrix-table" class="heatmap-tbl"><thead></thead><tbody></tbody></table></div>
+      <div style="margin-top:12px">
+        <button onclick="exportCSV('matrix-table','clo_plo_mapping.csv')" style="padding:7px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">⬇ Download Mapping Matrix (CSV)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="map-coverage" class="tab-panel">
+    <div class="section">
+      <h3>PLO Coverage Analysis</h3>
+      <div class="grid2" style="margin-bottom:16px">
+        <div><h3 style="font-size:13px;margin-bottom:10px">🔢 # CLOs per PLO</h3>
+          <div class="chart-box" style="height:280px"><canvas id="chart-cov-count"></canvas></div></div>
+        <div><h3 style="font-size:13px;margin-bottom:10px">📊 Avg Attainment per PLO</h3>
+          <div class="chart-box" style="height:280px"><canvas id="chart-cov-att"></canvas></div></div>
+      </div>
+      <div class="tbl-wrap"><table id="coverage-table">
+        <thead><tr><th>PLO</th><th>Description</th><th># Contributing CLOs</th><th style="min-width:140px">Avg Attainment</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ PAGE: TREND ════════════════════════ -->
+<div id="page-trend" class="page">
+  <div class="page-header">
+    <h1>📈 Trend Analysis</h1>
+    <p>Year-on-year PLO attainment trends — Diploma Pemasaran, PSAS</p>
+  </div>
+  <hr class="divider">
+
+  <div class="section">
+    <h3>📊 PLO Attainment Trend (Year-on-Year)</h3>
+    <div class="filter-row">
+      <div class="filter-group"><label>Select PLOs</label>
+        <select id="trend-plo-sel" multiple size="4" style="min-width:150px" onchange="renderTrendPage()"></select></div>
+      <div style="font-size:11px;color:#57606a;align-self:flex-end">Hold Ctrl/Cmd to select multiple</div>
+    </div>
+    <div class="chart-box" style="height:340px"><canvas id="chart-trend-line"></canvas></div>
+  </div>
+
+  <div class="grid2" style="margin-bottom:16px">
+    <div class="section">
+      <h3>📉 Overall Program Attainment Trend</h3>
+      <div class="chart-box" style="height:280px"><canvas id="chart-trend-overall"></canvas></div>
+    </div>
+    <div class="section">
+      <h3>📅 Semester Comparison</h3>
+      <div class="chart-box" style="height:280px"><canvas id="chart-trend-sem"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>📋 Year-on-Year Change Table</h3>
+    <div class="tbl-wrap"><table id="yoy-table"><thead></thead><tbody></tbody></table></div>
+    <div style="margin-top:12px">
+      <button onclick="exportCSV('yoy-table','plo_trend.csv')" style="padding:7px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">⬇ Download Trend Data (CSV)</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIGURATION & CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const TARGET = 55;
+const PLO_COLUMNS = ["PLO1","PLO2","PLO3","PLO4","PLO5","PLO6","PLO7","PLO8","PLO9","PLO10","PLO11"];
+const PLO_INFO = {
+  PLO1:  {desc:"Apply relevant concepts and theories in managing marketing activities.",       domain:"Knowledge"},
+  PLO2:  {desc:"Analyze issues and problems to provide solutions in conducting marketing activities.", domain:"Cognitive"},
+  PLO3:  {desc:"Perform marketing practical work skills in managing marketing activities.",    domain:"Psychomotor"},
+  PLO4:  {desc:"Develop good relationships and interactions with people in working communities.", domain:"Interpersonal"},
+  PLO5:  {desc:"Practice effective communication skills to establish good rapport in managing marketing activities.", domain:"Communication"},
+  PLO6:  {desc:"Practice relevant digital skills in the field of marketing.",                 domain:"Digital"},
+  PLO7:  {desc:"Analyze numerical and graphical data with relevant tools.",                   domain:"Numeracy"},
+  PLO8:  {desc:"Adopt leadership skills to manage diverse team and being responsible within organization.", domain:"Leadership"},
+  PLO9:  {desc:"Develop personal skills for self-improvement and career development.",        domain:"Personal"},
+  PLO10: {desc:"Demonstrate entrepreneurial skills in marketing activities.",                 domain:"Entrepreneurship"},
+  PLO11: {desc:"Display professionalism, positive attitudes and values with society and stakeholders in managing marketing activities.", domain:"Professionalism"},
+};
+const COLORS = {achieved:"#22c55e", near:"#f59e0b", failed:"#ef4444", target:"#3b82f6"};
+const CHART_PALETTE = ["#3b82d4","#7c5cd8","#22c55e","#f59e0b","#ef4444","#06b6d4","#ec4899","#8b5cf6","#14b8a6","#f97316","#a3e635"];
+
+// ═══════════════════════════════════════════════════════════
+// SAMPLE DATA GENERATION
+// ═══════════════════════════════════════════════════════════
+function seededRand(seed){
+  let s=seed%2147483647; if(s<=0) s+=2147483646;
+  return function(){s=s*16807%2147483647; return (s-1)/2147483646};
+}
+
+function generateSampleData(){
+  const rng=seededRand(42);
+  const courses=[
+    "Principles of Marketing","Consumer Behaviour","Marketing Research",
+    "Digital Marketing","Retail Management","Sales Management",
+    "Brand Management","International Marketing","Marketing Strategy",
+    "Advertising & Promotion","Services Marketing","Pricing Strategy",
+    "Distribution Management","E-Commerce","Marketing Analytics",
+    "Public Relations","Social Media Marketing","Event Management",
+    "Product Management","Entrepreneurship","Business Communication",
+    "Customer Relationship Mgmt","Market Segmentation","Marketing Ethics",
+    "Supply Chain Management","Financial Aspects of Marketing",
+    "Market Entry Strategy","Integrated Marketing Comm","Leadership & Teamwork",
+    "Professional Development","Industrial Training","Final Year Project",
+    "Multimedia Design","Data Analytics","Export Marketing",
+    "Halal Marketing","Green Marketing","Capstone Project",
+    "Marketing Seminar","Industry Attachment"
+  ];
+  const years=["2022","2023","2024"];
+  const sems=["Semester 1","Semester 2"];
+  const cloData=[];
+  const mapData=[];
+
+  courses.forEach(course=>{
+    const nClo=Math.floor(rng()*3)+2; // 2–4 CLOs
+    for(let ci=1;ci<=nClo;ci++){
+      const clo="CLO"+ci;
+      // mapping: 1–3 PLOs
+      const nPlo=Math.floor(rng()*3)+1;
+      const chosenPLOs=[];
+      const pIdx=[...PLO_COLUMNS];
+      for(let p=0;p<nPlo;p++){
+        const i=Math.floor(rng()*pIdx.length);
+        chosenPLOs.push(pIdx.splice(i,1)[0]);
+      }
+      const mapRow={Course:course, CLO:clo};
+      PLO_COLUMNS.forEach(p=>mapRow[p]=chosenPLOs.includes(p)?1:0);
+      mapData.push(mapRow);
+
+      years.forEach(year=>{
+        sems.forEach(sem=>{
+          const att=Math.round((50+rng()*45)*10)/10; // 50–95%
+          cloData.push({Course:course, CLO:clo, Attainment:att, Semester:sem, Year:year});
+        });
+      });
+    }
+  });
+  return {cloData, mapData};
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA STATE
+// ═══════════════════════════════════════════════════════════
+let DATA = generateSampleData();
+
+function handleFileUpload(evt){
+  const file=evt.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      DATA=JSON.parse(e.target.result);
+      initDashboard();
+      alert("Data loaded successfully!");
+    }catch(err){alert("Invalid JSON file: "+err.message);}
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CALCULATIONS
+// ═══════════════════════════════════════════════════════════
+function getStatus(v){return v>=TARGET?"achieved":(v>=TARGET-10?"near":"failed")}
+function getStatusLabel(v){return v>=TARGET?"🟢 Achieved":(v>=TARGET-10?"🟡 Near Target":"🔴 Not Achieved")}
+function getStatusColor(v){return v>=TARGET?COLORS.achieved:(v>=TARGET-10?COLORS.near:COLORS.failed)}
+
+function filterCLO({year="all",sem="all"}={}){
+  return DATA.cloData.filter(r=>
+    (year==="all"||r.Year===year)&&(sem==="all"||r.Semester===sem)
+  );
+}
+
+function avgGroupBy(arr, keys, valKey){
+  const map={};
+  arr.forEach(r=>{
+    const k=keys.map(k=>r[k]).join("||");
+    if(!map[k]) map[k]={...Object.fromEntries(keys.map(k=>[k,r[k]])), sum:0, n:0};
+    map[k].sum+=r[valKey]; map[k].n++;
+  });
+  return Object.values(map).map(x=>({...x, [valKey]:Math.round(x.sum/x.n*10)/10}));
+}
+
+function computePLO(cloRows){
+  return PLO_COLUMNS.map(plo=>{
+    const contributing=[];
+    cloRows.forEach(cr=>{
+      const mapRow=DATA.mapData.find(m=>m.Course===cr.Course&&m.CLO===cr.CLO);
+      if(mapRow&&mapRow[plo]===1) contributing.push(cr.Attainment);
+    });
+    const att=contributing.length?Math.round(contributing.reduce((a,b)=>a+b,0)/contributing.length*10)/10:0;
+    return {PLO:plo, Attainment:att};
+  });
+}
+
+function computePLOTrend(){
+  const years=[...new Set(DATA.cloData.map(r=>r.Year))].sort();
+  const rows=[];
+  years.forEach(year=>{
+    const sub=DATA.cloData.filter(r=>r.Year===year);
+    computePLO(sub).forEach(r=>rows.push({Year:year,...r}));
+  });
+  return rows;
+}
+
+function countCLOsPerPLO(){
+  const counts={};
+  PLO_COLUMNS.forEach(p=>{
+    const n=DATA.mapData.filter(r=>r[p]===1).length;
+    const att=[];
+    DATA.mapData.filter(r=>r[p]===1).forEach(m=>{
+      DATA.cloData.filter(c=>c.Course===m.Course&&c.CLO===m.CLO).forEach(c=>att.push(c.Attainment));
+    });
+    counts[p]={n, avg:att.length?Math.round(att.reduce((a,b)=>a+b,0)/att.length*10)/10:0};
+  });
+  return counts;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHART HELPERS
+// ═══════════════════════════════════════════════════════════
+const charts={};
+function mkChart(id,config){
+  if(charts[id]) charts[id].destroy();
+  const ctx=document.getElementById(id);
+  if(!ctx) return;
+  charts[id]=new Chart(ctx,config);
+  return charts[id];
+}
+
+function targetLine(labels){
+  return {label:`Target (${TARGET}%)`,data:labels.map(()=>TARGET),type:"line",borderColor:COLORS.target,borderDash:[6,3],pointRadius:0,borderWidth:2};
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS: TABLE
+// ═══════════════════════════════════════════════════════════
+function progressCell(val){
+  const color=getStatusColor(val);
+  return `<div style="display:flex;align-items:center;gap:8px">
+    <div class="bar-wrap"><div class="bar-fill" style="width:${val}%;background:${color}"></div></div>
+    <span style="font-size:12px;white-space:nowrap">${val}%</span>
+  </div>`;
+}
+
+function badgeCell(val){
+  const s=getStatus(val);
+  const lbl=getStatusLabel(val);
+  return `<span class="badge ${s}">${lbl}</span>`;
+}
+
+function setTbody(tableId, rows, cols){
+  const tbody=document.querySelector(`#${tableId} tbody`);
+  if(!tbody) return;
+  tbody.innerHTML=rows.map(r=>`<tr>${cols.map(c=>typeof c==="function"?`<td>${c(r)}</td>`:`<td>${r[c]??""}</td>`).join("")}</tr>`).join("");
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE: OVERVIEW
+// ═══════════════════════════════════════════════════════════
+function renderOverview(){
+  const plos=computePLO(DATA.cloData);
+  const nAch=plos.filter(r=>r.Attainment>=TARGET).length;
+  const nNear=plos.filter(r=>r.Attainment>=TARGET-10&&r.Attainment<TARGET).length;
+  const nFail=plos.filter(r=>r.Attainment<TARGET-10).length;
+  const overall=Math.round(plos.reduce((a,b)=>a+b.Attainment,0)/plos.length*10)/10;
+  const nCourses=[...new Set(DATA.cloData.map(r=>r.Course))].length;
+  const nCLOs=[...new Set(DATA.cloData.map(r=>r.Course+"||"+r.CLO))].length;
+
+  document.getElementById("kpi-overview").innerHTML=`
+    <div class="kpi-card"><div class="label">Overall PLO Attainment</div><div class="value">${overall}%</div>
+      <div class="sub ${overall>=TARGET?'ok':'warn'}">${overall>=TARGET?"✅ Above":"⚠️ Below"} Target (${TARGET}%)</div></div>
+    <div class="kpi-card"><div class="label">✅ PLO Achieved</div><div class="value">${nAch}<span style="font-size:16px;color:#57606a"> / 11</span></div></div>
+    <div class="kpi-card"><div class="label">🟡 Near Target</div><div class="value">${nNear}<span style="font-size:16px;color:#57606a"> / 11</span></div></div>
+    <div class="kpi-card"><div class="label">❌ Not Achieved</div><div class="value">${nFail}<span style="font-size:16px;color:#57606a"> / 11</span></div></div>
+    <div class="kpi-card"><div class="label">📚 Total Courses</div><div class="value">${nCourses}</div></div>
+    <div class="kpi-card"><div class="label">📌 Total CLOs</div><div class="value">${nCLOs}</div></div>`;
+
+  // Summary table
+  setTbody("plo-summary-table", plos, [
+    r=>`<strong>${r.PLO}</strong>`,
+    r=>`<span style="font-size:12px">${PLO_INFO[r.PLO].desc}</span>`,
+    r=>PLO_INFO[r.PLO].domain,
+    r=>progressCell(r.Attainment),
+    r=>`<span style="color:${r.Attainment-TARGET>=0?COLORS.achieved:COLORS.failed};font-weight:600">${r.Attainment-TARGET>=0?"+":""}${(r.Attainment-TARGET).toFixed(1)}%</span>`,
+    r=>badgeCell(r.Attainment)
+  ]);
+
+  // Overview bar chart
+  mkChart("chart-overview-bar",{
+    type:"bar",
+    data:{
+      labels:plos.map(r=>r.PLO),
+      datasets:[
+        {label:"Attainment (%)", data:plos.map(r=>r.Attainment),
+         backgroundColor:plos.map(r=>getStatusColor(r.Attainment)),
+         borderRadius:5},
+        targetLine(plos.map(r=>r.PLO))
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}%`}}},
+      scales:{y:{min:0,max:110,title:{display:true,text:"Attainment (%)"}},x:{title:{display:true,text:"PLO"}}}
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE: PLO DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function populatePLOFilters(){
+  const years=[...new Set(DATA.cloData.map(r=>r.Year))].sort();
+  const sems=[...new Set(DATA.cloData.map(r=>r.Semester))].sort();
+  const ysel=document.getElementById("plo-year");
+  const ssel=document.getElementById("plo-sem");
+  ysel.innerHTML=`<option value="all">All Years</option>`+years.map(y=>`<option>${y}</option>`).join("");
+  ssel.innerHTML=`<option value="all">All Semesters</option>`+sems.map(s=>`<option>${s}</option>`).join("");
+}
+
+function renderPLOPage(){
+  const year=document.getElementById("plo-year").value;
+  const sem=document.getElementById("plo-sem").value;
+  const rows=filterCLO({year,sem});
+  const plos=computePLO(rows);
+
+  // Radar
+  const vals=plos.map(r=>r.Attainment);
+  mkChart("chart-radar",{
+    type:"radar",
+    data:{
+      labels:PLO_COLUMNS,
+      datasets:[
+        {label:"Attainment (%)", data:vals, fill:true, backgroundColor:"rgba(59,130,212,0.2)", borderColor:"#3b82d4", pointBackgroundColor:"#3b82d4"},
+        {label:`Target (${TARGET}%)`, data:PLO_COLUMNS.map(()=>TARGET), fill:false, borderColor:"#ef4444", borderDash:[5,3], pointRadius:0, borderWidth:2}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{r:{min:0,max:100,ticks:{stepSize:20}}},
+      plugins:{legend:{position:"bottom"}}}
+  });
+
+  // Bar
+  mkChart("chart-plo-bar",{
+    type:"bar",
+    data:{
+      labels:PLO_COLUMNS,
+      datasets:[
+        {label:"Attainment (%)", data:vals, backgroundColor:plos.map(r=>getStatusColor(r.Attainment)), borderRadius:4},
+        targetLine(PLO_COLUMNS)
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:110},x:{}}}
+  });
+
+  // Domain chart
+  const domMap={};
+  plos.forEach(r=>{
+    const d=PLO_INFO[r.PLO].domain;
+    if(!domMap[d]) domMap[d]={sum:0,n:0};
+    domMap[d].sum+=r.Attainment; domMap[d].n++;
+  });
+  const domLabels=Object.keys(domMap);
+  const domVals=domLabels.map(d=>Math.round(domMap[d].sum/domMap[d].n*10)/10);
+  mkChart("chart-domain",{
+    type:"bar",
+    data:{
+      labels:domLabels,
+      datasets:[
+        {label:"Avg Attainment (%)", data:domVals,
+         backgroundColor:domVals.map(v=>getStatusColor(v)), borderRadius:4},
+        targetLine(domLabels)
+      ]
+    },
+    options:{
+      indexAxis:"y", responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{min:0,max:110}}
+    }
+  });
+
+  // Detail table
+  const cloMap=countCLOsPerPLO();
+  setTbody("plo-detail-table", plos,[
+    r=>`<strong>${r.PLO}</strong>`,
+    r=>`<span style="font-size:12px">${PLO_INFO[r.PLO].desc.substring(0,70)}…</span>`,
+    r=>PLO_INFO[r.PLO].domain,
+    r=>progressCell(r.Attainment),
+    r=>`<span style="color:${r.Attainment-TARGET>=0?COLORS.achieved:COLORS.failed};font-weight:600">${r.Attainment-TARGET>=0?"+":""}${(r.Attainment-TARGET).toFixed(1)}%</span>`,
+    r=>cloMap[r.PLO]?.n||0,
+    r=>badgeCell(r.Attainment)
+  ]);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE: COURSE CLO
+// ═══════════════════════════════════════════════════════════
+function populateCourseFilters(){
+  const courses=["All Courses",...[...new Set(DATA.cloData.map(r=>r.Course))].sort()];
+  const years=[...new Set(DATA.cloData.map(r=>r.Year))].sort();
+  const csel=document.getElementById("course-sel");
+  const ysel=document.getElementById("course-year");
+  csel.innerHTML=courses.map(c=>`<option>${c}</option>`).join("");
+  ysel.innerHTML=`<option value="all">All Years</option>`+years.map(y=>`<option>${y}</option>`).join("");
+}
+
+function renderCoursePage(){
+  const sel=document.getElementById("course-sel").value;
+  const year=document.getElementById("course-year").value;
+  let rows=filterCLO({year});
+  if(sel!=="All Courses") rows=rows.filter(r=>r.Course===sel);
+
+  if(sel==="All Courses"){
+    // All courses summary
+    document.getElementById("course-chart-title").textContent="📊 Avg CLO Attainment — All Courses";
+    const courseAvg=avgGroupBy(rows,["Course"],"Attainment").sort((a,b)=>b.Attainment-a.Attainment);
+    const nAch=courseAvg.filter(r=>r.Attainment>=TARGET).length;
+    document.getElementById("kpi-course").innerHTML=`
+      <div class="kpi-card"><div class="label">Total Courses</div><div class="value">${courseAvg.length}</div></div>
+      <div class="kpi-card"><div class="label">✅ Achieved Target</div><div class="value">${nAch}</div></div>
+      <div class="kpi-card"><div class="label">❌ Below Target</div><div class="value">${courseAvg.length-nAch}</div></div>`;
+    document.getElementById("course-trend-section").style.display="none";
+
+    mkChart("chart-clo-bar",{
+      type:"bar",
+      data:{
+        labels:courseAvg.map(r=>r.Course.substring(0,22)),
+        datasets:[
+          {label:"Avg CLO Attainment (%)", data:courseAvg.map(r=>r.Attainment),
+           backgroundColor:courseAvg.map(r=>getStatusColor(r.Attainment)), borderRadius:4},
+          targetLine(courseAvg.map(r=>r.Course))
+        ]
+      },
+      options:{
+        indexAxis:"y", responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{min:0,max:110}}
+      }
+    });
+    // Update table
+    setTbody("clo-detail-table", courseAvg,[
+      r=>r.Course,
+      r=>"All CLOs",
+      r=>progressCell(r.Attainment),
+      r=>badgeCell(r.Attainment)
+    ]);
+  } else {
+    // Single course
+    document.getElementById("course-chart-title").textContent=`📖 CLO Attainment — ${sel}`;
+    const cloAvg=avgGroupBy(rows,["Course","CLO"],"Attainment").sort((a,b)=>a.CLO.localeCompare(b.CLO));
+    const overall=cloAvg.length?Math.round(cloAvg.reduce((a,b)=>a+b.Attainment,0)/cloAvg.length*10)/10:0;
+    const nAch=cloAvg.filter(r=>r.Attainment>=TARGET).length;
+    document.getElementById("kpi-course").innerHTML=`
+      <div class="kpi-card"><div class="label"># CLOs</div><div class="value">${cloAvg.length}</div></div>
+      <div class="kpi-card"><div class="label">Avg Attainment</div><div class="value">${overall}%</div></div>
+      <div class="kpi-card"><div class="label">CLOs Achieved</div><div class="value">${nAch} / ${cloAvg.length}</div></div>`;
+    document.getElementById("course-trend-section").style.display="block";
+
+    mkChart("chart-clo-bar",{
+      type:"bar",
+      data:{
+        labels:cloAvg.map(r=>r.CLO),
+        datasets:[
+          {label:"Attainment (%)", data:cloAvg.map(r=>r.Attainment),
+           backgroundColor:cloAvg.map(r=>getStatusColor(r.Attainment)), borderRadius:5},
+          targetLine(cloAvg.map(r=>r.CLO))
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{y:{min:0,max:110}}
+      }
+    });
+
+    // Trend by year per CLO
+    const allYears=[...new Set(DATA.cloData.filter(r=>r.Course===sel).map(r=>r.Year))].sort();
+    const clos=[...new Set(cloAvg.map(r=>r.CLO))];
+    const trendDatasets=clos.map((clo,i)=>({
+      label:clo,
+      data:allYears.map(y=>{
+        const sub=DATA.cloData.filter(r=>r.Course===sel&&r.CLO===clo&&r.Year===y);
+        return sub.length?Math.round(sub.reduce((a,b)=>a+b.Attainment,0)/sub.length*10)/10:null;
+      }),
+      borderColor:CHART_PALETTE[i%CHART_PALETTE.length],
+      backgroundColor:CHART_PALETTE[i%CHART_PALETTE.length],
+      tension:.3, pointRadius:4
+    }));
+    trendDatasets.push({...targetLine(allYears), type:"line"});
+    mkChart("chart-clo-trend",{
+      type:"line",
+      data:{labels:allYears, datasets:trendDatasets},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:"bottom"}},
+        scales:{y:{min:0,max:100}}}
+    });
+
+    setTbody("clo-detail-table", cloAvg,[
+      r=>r.Course,
+      r=>r.CLO,
+      r=>progressCell(r.Attainment),
+      r=>badgeCell(r.Attainment)
+    ]);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE: MAPPING
+// ═══════════════════════════════════════════════════════════
+function renderHeatmap(){
+  const cloAvg=avgGroupBy(DATA.cloData,["Course","CLO"],"Attainment");
+  const thead=document.querySelector("#heatmap-table thead");
+  const tbody=document.querySelector("#heatmap-table tbody");
+  thead.innerHTML=`<tr><th>Course | CLO</th>${PLO_COLUMNS.map(p=>`<th>${p}</th>`).join("")}</tr>`;
+  const rows=cloAvg.slice(0,80);
+  tbody.innerHTML=rows.map(r=>{
+    const mapRow=DATA.mapData.find(m=>m.Course===r.Course&&m.CLO===r.CLO)||{};
+    const cells=PLO_COLUMNS.map(p=>{
+      if(mapRow[p]===1){
+        const bg=getStatusColor(r.Attainment);
+        return `<td style="background:${bg}20;color:${bg};font-weight:600">${r.Attainment}%</td>`;
+      }
+      return `<td style="color:#d1d5db">—</td>`;
+    }).join("");
+    return `<tr><td>${r.Course.substring(0,22)} | ${r.CLO}</td>${cells}</tr>`;
+  }).join("");
+}
+
+function populateMatrixFilter(){
+  const courses=["All Courses",...[...new Set(DATA.mapData.map(r=>r.Course))].sort()];
+  const sel=document.getElementById("matrix-course-sel");
+  sel.innerHTML=courses.map(c=>`<option>${c}</option>`).join("");
+}
+
+function renderMatrix(){
+  const course=document.getElementById("matrix-course-sel").value;
+  let rows=DATA.mapData;
+  if(course!=="All Courses") rows=rows.filter(r=>r.Course===course);
+  const thead=document.querySelector("#matrix-table thead");
+  const tbody=document.querySelector("#matrix-table tbody");
+  thead.innerHTML=`<tr><th>Course | CLO</th>${PLO_COLUMNS.map(p=>`<th>${p}</th>`).join("")}</tr>`;
+  tbody.innerHTML=rows.map(r=>`<tr>
+    <td>${r.Course.substring(0,22)} | ${r.CLO}</td>
+    ${PLO_COLUMNS.map(p=>`<td style="text-align:center">${r[p]===1?"✅":""}</td>`).join("")}
+  </tr>`).join("");
+}
+
+function renderCoverage(){
+  const cov=countCLOsPerPLO();
+  const labels=PLO_COLUMNS;
+  mkChart("chart-cov-count",{
+    type:"bar",
+    data:{labels, datasets:[{label:"# CLOs",data:labels.map(p=>cov[p].n),backgroundColor:"#3b82d4",borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+  });
+  mkChart("chart-cov-att",{
+    type:"bar",
+    data:{labels, datasets:[
+      {label:"Avg Attainment (%)",data:labels.map(p=>cov[p].avg),
+       backgroundColor:labels.map(p=>getStatusColor(cov[p].avg)),borderRadius:4},
+      targetLine(labels)
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:110}}}
+  });
+  setTbody("coverage-table",labels.map(p=>({PLO:p,...cov[p]})),[
+    r=>`<strong>${r.PLO}</strong>`,
+    r=>`<span style="font-size:12px">${PLO_INFO[r.PLO].desc.substring(0,60)}…</span>`,
+    r=>r.n,
+    r=>progressCell(r.avg),
+    r=>badgeCell(r.avg)
+  ]);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE: TREND
+// ═══════════════════════════════════════════════════════════
+function populateTrendFilters(){
+  const sel=document.getElementById("trend-plo-sel");
+  sel.innerHTML=PLO_COLUMNS.map(p=>`<option value="${p}" ${PLO_COLUMNS.indexOf(p)<5?"selected":""}>${p}</option>`).join("");
+}
+
+function renderTrendPage(){
+  const selectedPLOs=[...document.getElementById("trend-plo-sel").selectedOptions].map(o=>o.value);
+  const trend=computePLOTrend();
+  const years=[...new Set(trend.map(r=>r.Year))].sort();
+
+  // Line chart
+  const datasets=selectedPLOs.map((plo,i)=>({
+    label:plo,
+    data:years.map(y=>{const r=trend.find(t=>t.PLO===plo&&t.Year===y); return r?r.Attainment:null;}),
+    borderColor:CHART_PALETTE[i%CHART_PALETTE.length],
+    backgroundColor:CHART_PALETTE[i%CHART_PALETTE.length],
+    tension:.3, pointRadius:5
+  }));
+  datasets.push({...targetLine(years),type:"line"});
+  mkChart("chart-trend-line",{
+    type:"line",
+    data:{labels:years, datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"bottom"}},
+      scales:{y:{min:0,max:100,title:{display:true,text:"Attainment (%)"}},x:{title:{display:true,text:"Year"}}}}
+  });
+
+  // Overall trend
+  const overallTrend=years.map(y=>{
+    const sub=trend.filter(r=>r.Year===y);
+    return {Year:y,Attainment:Math.round(sub.reduce((a,b)=>a+b.Attainment,0)/sub.length*10)/10};
+  });
+  mkChart("chart-trend-overall",{
+    type:"line",
+    data:{
+      labels:years,
+      datasets:[
+        {label:"Overall Avg PLO Attainment",data:overallTrend.map(r=>r.Attainment),
+         borderColor:"#3b82d4",backgroundColor:"rgba(59,130,212,0.15)",tension:.3,fill:true,pointRadius:6,
+         pointBackgroundColor:overallTrend.map(r=>getStatusColor(r.Attainment))},
+        targetLine(years)
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:100}}}
+  });
+
+  // Semester comparison
+  const sems=[...new Set(DATA.cloData.map(r=>r.Semester))].sort();
+  const semDatasets=sems.map((sem,i)=>{
+    const plos=computePLO(DATA.cloData.filter(r=>r.Semester===sem));
+    return {label:sem,data:plos.map(r=>r.Attainment),backgroundColor:["#3b82d4","#7c5cd8"][i%2],borderRadius:4};
+  });
+  semDatasets.push(targetLine(PLO_COLUMNS));
+  mkChart("chart-trend-sem",{
+    type:"bar",
+    data:{labels:PLO_COLUMNS,datasets:semDatasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"bottom"}},
+      scales:{y:{min:0,max:110}}}
+  });
+
+  // YoY table
+  const thead=document.querySelector("#yoy-table thead");
+  const tbody=document.querySelector("#yoy-table tbody");
+  thead.innerHTML=`<tr><th>PLO</th>${years.map(y=>`<th>${y}</th>`).join("")}<th>Change</th><th>Trend</th></tr>`;
+  tbody.innerHTML=PLO_COLUMNS.map(plo=>{
+    const vals=years.map(y=>{const r=trend.find(t=>t.PLO===plo&&t.Year===y);return r?r.Attainment:null;});
+    const first=vals.find(v=>v!==null);
+    const last=[...vals].reverse().find(v=>v!==null);
+    const change=first!=null&&last!=null?(last-first).toFixed(1):null;
+    const trendIcon=change===null?"—":change>0?`<span style="color:#22c55e">⬆️ +${change}%</span>`:change<0?`<span style="color:#ef4444">⬇️ ${change}%</span>`:`<span style="color:#57606a">➡️ Stable</span>`;
+    return `<tr><td><strong>${plo}</strong></td>${vals.map(v=>v!=null?`<td>${progressCell(v)}</td>`:`<td style="color:#d1d5db">—</td>`).join("")}<td>${change!=null?(change>0?"+":"")+change+"%":"—"}</td><td>${trendIcon}</td></tr>`;
+  }).join("");
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+let currentPage="overview";
+function showPage(name, el){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll("#sidebar nav a").forEach(a=>a.classList.remove("active"));
+  document.getElementById("page-"+name).classList.add("active");
+  el.classList.add("active");
+  currentPage=name;
+  if(name==="overview") renderOverview();
+  else if(name==="plo") renderPLOPage();
+  else if(name==="course") renderCoursePage();
+  else if(name==="mapping"){renderHeatmap();renderMatrix();renderCoverage();}
+  else if(name==="trend") renderTrendPage();
+  return false;
+}
+
+function switchTab(group,name,btn){
+  document.querySelectorAll(`#page-mapping .tab-panel`).forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(`#page-mapping .tab-btn`).forEach(b=>b.classList.remove("active"));
+  document.getElementById(group+"-"+name).classList.add("active");
+  btn.classList.add("active");
+  if(name==="heatmap") renderHeatmap();
+  else if(name==="matrix") renderMatrix();
+  else if(name==="coverage") renderCoverage();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CSV EXPORT
+// ═══════════════════════════════════════════════════════════
+function exportCSV(tableId, filename){
+  const tbl=document.getElementById(tableId);
+  const rows=[...tbl.querySelectorAll("tr")];
+  const csv=rows.map(r=>[...r.querySelectorAll("th,td")].map(c=>`"${c.textContent.trim().replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a=document.createElement("a");
+  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+  a.download=filename; a.click();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+function initDashboard(){
+  populatePLOFilters();
+  populateCourseFilters();
+  populateMatrixFilter();
+  populateTrendFilters();
+  renderOverview();
+}
+
+document.addEventListener("DOMContentLoaded", initDashboard);
+</script>
+</body>
+</html>
